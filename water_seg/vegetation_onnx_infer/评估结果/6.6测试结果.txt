@@ -1,0 +1,21 @@
+水体检测
+GF2_PMS1__L1A0000564539-MSS1 这张图  segnext  
+我的miou  0.8641
+ibrain    0.8607
+
+428597 这张图    segnext  
+我的miou  0.4974
+ibrain    0.9376
+
+830444 这张图    segnext  
+我的miou  0.5115166573164263
+ibrain    0.9668874987105678
+
+882451 这张图    segnext  
+我的miou  0.4165380740662442
+ibrain    0.9201727663426772
+
+植被检测
+GF2_PMS1__L1A0000564539-MSS1_tile_0  这张图  ocrnet
+我的miou  0.7320009371455964
+ibrain    0.282

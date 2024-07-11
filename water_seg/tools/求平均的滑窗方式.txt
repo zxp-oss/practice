@@ -1,0 +1,67 @@
+def slide_inference(im, crop_size, stride):
+    """
+    Infer by sliding window.
+
+    Args:
+        model (paddle.nn.Layer): model to get logits of image.
+        im (Tensor): the input image.
+        crop_size (tuple|list). The size of sliding window, (w, h).
+        stride (tuple|list). The size of stride, (w, h).
+
+    Return:
+        Tensor: The logit of input image.
+    """
+
+    im = np.transpose(im, (2, 0, 1))
+    im = np.expand_dims(im, axis=0)
+    h_im, w_im = im.shape[-2:]
+    w_crop, h_crop = crop_size
+    w_stride, h_stride = stride
+    # calculate the crop nums
+    rows = int(np.ceil(1.0 * (h_im - h_crop) / h_stride)) + 1
+    cols = int(np.ceil(1.0 * (w_im - w_crop) / w_stride)) + 1
+    # print(rows, cols)
+    # prevent negative sliding rounds when imgs after scaling << crop_size
+    rows = 1 if h_im <= h_crop else rows
+    cols = 1 if w_im <= w_crop else cols
+    # TODO 'Tensor' object does not support item assignment. If support, use tensor to calculation.
+    final_logit = None
+    count = np.zeros([1, 1, h_im, w_im])
+    for r in tqdm.tqdm(range(rows)):
+        for c in range(cols):
+            h1 = r * h_stride
+            w1 = c * w_stride
+            h2 = min(h1 + h_crop, h_im)
+            w2 = min(w1 + w_crop, w_im)
+            h1 = max(h2 - h_crop, 0)
+            w1 = max(w2 - w_crop, 0)
+            im_crop = im[:, :, h1:h2, w1:w2]
+            # 去掉批次维度，变成 (3, 1024, 1024)
+            im_crop = np.squeeze(im_crop, axis=0)
+
+            # 调整维度顺序，变成 (1024, 1024, 3)
+            im_crop = np.transpose(im_crop, (1, 2, 0))
+
+
+            logits = onnx_infer(im_crop, ONNX_PATH)
+
+            logits = np.transpose(logits, (2, 0, 1))
+            logit = np.expand_dims(logits, axis=0)
+
+
+
+            # logit = logits[0].numpy()
+            if final_logit is None:
+                final_logit = np.zeros([1, logit.shape[1], h_im, w_im])
+            final_logit[:, :, h1:h2, w1:w2] += logit[:, :, :h2 - h1, :w2 - w1]
+            count[:, :, h1:h2, w1:w2] += 1
+    if np.sum(count == 0) != 0:
+        raise RuntimeError(
+            'There are pixel not predicted. It is possible that stride is greater than crop_size'
+        )
+    final_logit = final_logit / count
+    cv2.namedWindow('image3', cv2.WINDOW_NORMAL)
+    cv2.imshow('image3', final_logit.squeeze().astype(np.uint8))
+    cv2.waitKey(0)
+
+    return final_logit

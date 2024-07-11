@@ -1,0 +1,58 @@
+batch_size: 2
+iters: 200000
+
+train_dataset:
+  type: Dataset
+  dataset_root: data/five_data
+  train_path: data/five_data/train.txt
+  num_classes: 4  #类别个数，背景也算一类
+  transforms:
+    - type: ResizeStepScaling
+      min_scale_factor: 0.5
+      max_scale_factor: 2.0
+      scale_step_size: 0.25
+    - type: RandomPaddingCrop
+      crop_size: [1024, 1024]
+    - type: RandomHorizontalFlip
+    - type: RandomDistort
+      brightness_range: 0.5
+      contrast_range: 0.5
+      saturation_range: 0.5
+    - type: Normalize
+  mode: train
+
+val_dataset:
+  type: Dataset
+  dataset_root: data/five_data
+  val_path: data/five_data/val.txt
+  num_classes: 4  #类别个数，背景也算一类
+  transforms:
+    - type: Normalize
+  mode: val
+
+
+optimizer:
+  type: AdamW
+  beta1: 0.9
+  beta2: 0.999
+  weight_decay: 0.01
+
+loss:
+  types:
+    - type: CrossEntropyLoss
+  coef: [1]
+
+lr_scheduler:
+  type: PolynomialDecay
+  learning_rate: 0.00006
+  end_lr: 0
+  power: 1
+
+model:
+  type: SegFormer
+  backbone:
+    type: MixVisionTransformer_B3
+    pretrained: https://bj.bcebos.com/paddleseg/dygraph/backbone/mix_vision_transformer_b3.tar.gz
+  embedding_dim: 768
+  num_classes: 4
+
